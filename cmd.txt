@@ -1,0 +1,25 @@
+!pip install requests gradio pandas ollama
+
+import gradio as gr
+import pandas as pd
+import requests
+
+ollama_url="http://localhost:11434/api/generate"
+model="qwen2.5:0.5b"
+movies = pd.read_csv("movies.csv")
+movies.head()
+
+def get_context(qn):
+    q=qn.lower()
+    rows = movies[movies["title"].str.lower().str.contains(q)]
+    if rows.empty:
+        rows=movies
+    return str(rows)
+
+def answer(qn,history=None):
+    context=get_context(qn)
+    prompt = f"use ONLY this movie data:{context}\n{qn}"
+    r = requests.post(ollama_url, json={"model":model,"prompt":prompt,"stream":False})
+    return r.json().get("response","")
+
+gr.ChatInterface(answer).launch()
